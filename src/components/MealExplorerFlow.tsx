@@ -163,7 +163,8 @@ export default function MealExplorerFlow() {
   }, []);
 
   const onNodeClick = useCallback(
-    async (_event: MouseEvent, node: Node) => {
+    async (event: React.MouseEvent, node: Node) => {
+      console.log(event);
       if (node.id === "explorer" && categories.length > 0) {
         const newNodes: Node[] = categories.map((category, index) => ({
           id: `category-${index}`,
