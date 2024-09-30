@@ -47,6 +47,10 @@ interface MealDetailsResponse {
   meals: MealDetails[];
 }
 
+interface MealByIngredientResponse {
+  meals: Meal[] | null;
+}
+
 const initialNodes: Node[] = [
   {
     id: "explorer",
@@ -67,6 +71,8 @@ const initialNodes: Node[] = [
     className: "border-2 border-blue-300 rounded-xl",
   },
 ];
+
+const initialEdges: Edge[] = [];
 
 const CustomEdge: React.FC<EdgeProps> = ({
   id,
@@ -99,7 +105,8 @@ const edgeTypes = {
 
 export default function MealExplorerFlow() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
 
@@ -181,7 +188,7 @@ export default function MealExplorerFlow() {
           id: `edge-explorer-${index}`,
           source: "explorer",
           target: `category-${index}`,
-          type: "custom", 
+          type: "custom",
         }));
 
         setNodes((nds) => [
@@ -262,6 +269,7 @@ export default function MealExplorerFlow() {
           id: `edge-view-meals-${categoryIndex}-meal-${index}`,
           source: node.id,
           target: `meal-${categoryIndex}-${index}`,
+          type: "custom",
         }));
 
         setNodes((nds) => [
@@ -277,7 +285,7 @@ export default function MealExplorerFlow() {
           ),
         ]);
       } else if (node.id.startsWith("meal-")) {
-        const mealId = node.data.mealId;
+        const mealId = node.data.mealId as string;
         if (mealId) {
           const optionNodes: Node[] = [
             {
@@ -349,13 +357,14 @@ export default function MealExplorerFlow() {
             id: `edge-${node.id}-${optionNode.id}`,
             source: node.id,
             target: optionNode.id,
+            type: "custom",
           }));
 
           setNodes((nds) => [...nds, ...optionNodes]);
           setEdges((eds) => [...eds, ...optionEdges]);
         }
       } else if (node.id.startsWith("view-ingredients-")) {
-        const mealId = node.data.mealId;
+        const mealId: string = node.data.mealId as string;
         const mealDetails = await fetchMealDetails(mealId);
 
         const ingredients = [
@@ -396,12 +405,13 @@ export default function MealExplorerFlow() {
           id: `edge-${node.id}-ingredient-${index}`,
           source: node.id,
           target: `ingredient-${node.id}-${index}`,
+          type: "custom",
         }));
 
         setNodes((nds) => [...nds, ...ingredientNodes]);
         setEdges((eds) => [...eds, ...ingredientEdges]);
       } else if (node.id.startsWith("view-tags-")) {
-        const mealId = node.data.mealId;
+        const mealId: string = node.data.mealId as string;
         const mealDetails = await fetchMealDetails(mealId);
 
         const tags = mealDetails.strTags
@@ -428,15 +438,17 @@ export default function MealExplorerFlow() {
           id: `edge-${node.id}-tag-${index}`,
           source: node.id,
           target: `tag-${node.id}-${index}`,
+          type: "custom",
         }));
 
         setNodes((nds) => [...nds, ...tagNodes]);
         setEdges((eds) => [...eds, ...tagEdges]);
       } else if (node.id.startsWith("view-details-")) {
-        const mealId = node.data.mealId;
+        const mealId: string = node.data.mealId as string;
         setSelectedMealId(mealId);
       } else if (node.id.startsWith("ingredient-")) {
-        const ingredient = node.data.label.props.children[1].props.children;
+        const label = node.data.label as JSX.Element;
+        const ingredient = label.props.children[1].props.children;
         const meals = await fetchMealsByIngredient(ingredient);
 
         const mealNodes: Node[] = meals.map((meal, index) => ({
@@ -483,8 +495,16 @@ export default function MealExplorerFlow() {
         ]);
       }
     },
-    [categories, setNodes, setEdges, fetchMealDetails, fetchMealsByIngredient]
+    [
+      categories,
+      setNodes,
+      setEdges,
+      fetchMeals,
+      fetchMealDetails,
+      fetchMealsByIngredient,
+    ]
   );
+
   return (
     <div className="w-screen h-screen bg-gray-50">
       <ReactFlow
